@@ -1,6 +1,5 @@
 ﻿using System;
 using SecretStringMaker;
-using System.Diagnostics;
 
 namespace SecretMakerTest
 {
@@ -8,7 +7,6 @@ namespace SecretMakerTest
     {
         static void Main()
         {
-            Stopwatch stopWatch = new Stopwatch();
 
             Console.WriteLine(
                 " You are running a testing application. It is designed to expose any weakness in a\n" +
@@ -26,7 +24,6 @@ namespace SecretMakerTest
                     string reps = Console.ReadLine();
                     Console.WriteLine(" Enter the length of generated string: (default is 92)  (ctrl - c to quit");
                     string secretLength = Console.ReadLine();
-                    stopWatch.Start();
                     var runner = new TestRunner();
 
                     if (reps == "" && secretLength == "")
@@ -51,17 +48,6 @@ namespace SecretMakerTest
                 {
                     Console.WriteLine(ex);
                 }
-
-                stopWatch.Stop();
-                // Get the elapsed time as a TimeSpan value.
-                TimeSpan ts = stopWatch.Elapsed;
-
-                // Format and display the TimeSpan value.
-                string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-                    ts.Hours, ts.Minutes, ts.Seconds,
-                    ts.Milliseconds / 10);
-                Console.WriteLine(" RunTime: " + elapsedTime);
-                stopWatch.Reset();
 
                 Console.WriteLine("\n ctrl-c to quit");
             }

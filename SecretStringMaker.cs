@@ -1,23 +1,13 @@
 ﻿using System;
-using System.Linq;
 using System.Text;
-using System.Security.Cryptography;
-using System.Collections.Generic;
 
 namespace SecretStringMaker
 {
 
-    /// Generates cryptographic strength random strings (secrets). RNGCryptoServiceProvider is used as the
-    /// random index source. The string generated is insured to have at least one char from each of four separate 
-    /// sub-pools of characters; numbers, lower case, uppercase, and special.  
-    /// 
-    /// Discussion: There is a problem with the random source as it only returns byte chunks of random bits. This
-    /// can introduce a bias into a solution when using the bytes as an index into a selection string. 
-    /// (ref: http://stackoverflow.com/questions/32932679/using-rngcryptoserviceprovider-to-generate-random-string)
-    /// This issue is overcome by using a subset of the random returned bits. The subset must be large enough to
-    /// hold the largest index needed.  Any returned subset that has a numerical value larger than the max index
-    /// is discarded and a new random set is retrieved.
-    /// 
+    /// <summary>
+    ///     Generates cryptographic strength random strings(secrets). RNGCryptoServiceProvider is used as the
+    ///     random index source.  The string generated is insured to have at least one char from each of four
+    ///     separate sub-pools of characters; numbers, lower case, uppercase, and special.
     /// </summary>
     public class SecretMaker
     {
@@ -30,13 +20,8 @@ namespace SecretStringMaker
         private int numberPoolEnd = numberPool.Length - 1;
         private int lowerPoolEnd = numberPool.Length + lowerPool.Length - 1;
         private int upperPoolEnd = numberPool.Length + lowerPool.Length + upperPool.Length - 1;
-
-        private int bitsToShift = 0;
-        private byte[] twoBytes = new byte[2];
-        private ushort randomIndex;
-
-        private int minSecretLength = 4;
         private int secretStringLength;
+        private int minSecretLength = 4;
 
         private int numberOfPoolsCompensated = 0;
         private bool numberPoolCompensated = false;
@@ -49,7 +34,7 @@ namespace SecretStringMaker
         }
 
         /// <summary>
-        /// Constructor: Sets length of generated secrets to the same length as the selection pool.
+        /// Sets length of generated secrets to the same length as the selection pool.
         /// </summary>
         public SecretMaker()
         {
@@ -57,18 +42,14 @@ namespace SecretStringMaker
         }
 
         /// <summary>
-        /// Constructor: Sets length of generated secrets. Minimum length is 4. Maximum length is 65536 chars
+        /// Sets length of generated secrets. any argument less than 4 will return a sting of length 4.
         /// </summary>
         /// <param name="length">Desired length of new secret.</param>
         public SecretMaker(int length)
         {
-            if (length < minSecretLength)
+            if ( length < minSecretLength )
             {
-                throw new Exception($"String length too short; must be {minSecretLength} or more characters.");
-            }
-            else if (length > ushort.MaxValue)
-            {
-                throw new Exception($"String length too long; cannot exceed {ushort.MaxValue} characters.");
+                secretStringLength = minSecretLength;
             }
             else
             {
@@ -91,30 +72,28 @@ namespace SecretStringMaker
             specialPoolCompensated = false;
             numberOfPoolsCompensated = 0;
 
-            // Important: Type RNGCryptoServiceProvider uses IDisposable interface.
-            // The following 'using' construct insures that it will be disposed.  
-            using (RNGCryptoServiceProvider rngProvider = new RNGCryptoServiceProvider())
-            {
-                // Object where the secret is assembled.
-                StringBuilder sBuilder = new StringBuilder(secretStringLength);
+            // Object where the secret is assembled.
+            var sBuilder = new StringBuilder(secretStringLength);
 
-                // Add one char from each of the four sub-pools ensuring the secret
-                // contains at least one char from each sub-pool.
-                addCharsToBuilder(numberPool, 1, sBuilder, rngProvider, false);
-                addCharsToBuilder(lowerPool, 1, sBuilder, rngProvider, false);
-                addCharsToBuilder(upperPool, 1, sBuilder, rngProvider, false);
-                addCharsToBuilder(specialPool, 1, sBuilder, rngProvider, false);
+            // Object that generates the random indexes.
+            var newRandomSource = new CryptoRandomIndexProvider();
 
-                // Add the remaining chars from allCharsPool.
-                // Note: Bias introduce in previous steps is mitigated in this step.
-                addCharsToBuilder(allCharsPool, secretStringLength - minSecretLength, sBuilder, rngProvider, true);
+            // Add one char from each of the four sub-pools ensuring the secret
+            // contains at least one char from each sub-pool.
+            addCharsToBuilder(numberPool, 1, sBuilder, newRandomSource, false);
+            addCharsToBuilder(lowerPool, 1, sBuilder, newRandomSource, false);
+            addCharsToBuilder(upperPool, 1, sBuilder, newRandomSource, false);
+            addCharsToBuilder(specialPool, 1, sBuilder, newRandomSource, false);
 
-                // Shuffle the string to randomly relocate the first four chars added.
-                shuffle(sBuilder, rngProvider);
+            // Add the remaining chars from allCharsPool.
+            // Note: Bias introduce in previous steps is mitigated in this step.
+            addCharsToBuilder(allCharsPool, secretStringLength - minSecretLength, sBuilder, newRandomSource, true);
 
-                // Return the assembled string.
-                return sBuilder.ToString();
-            }
+            // Shuffle the entire string randomly relocating the first four chars added.
+            shuffle(sBuilder, newRandomSource);
+
+            // Return the assembled string.
+            return sBuilder.ToString();
         }
 
 
@@ -126,23 +105,22 @@ namespace SecretStringMaker
         /// <param name="builder">string builder chars are added to</param>
         /// <param name="provider">random generator provider</param>
         /// <prram name="compensate">Flag to check if compensation is necessary</prram>
-        private void addCharsToBuilder(string pool, int numberOfCharsToAdd, StringBuilder builder, RNGCryptoServiceProvider provider, bool compensate)
+        private void addCharsToBuilder(string pool, int numberOfCharsToAdd, StringBuilder builder, CryptoRandomIndexProvider provider, bool compensate)
         {
-            bitsToShift = getBitsToShift(pool.Length);
 
             for (int i = 0; i < numberOfCharsToAdd; i++)
             {
                 // load randomIndex with a random number.
-                processRandomIndex(provider, pool.Length, bitsToShift);
+                var randomIndex = provider.getRandomIndex(pool.Length-1);
 
-                // Discussion: The program selects one random character from each of the four sub-strings to ensure
-                // the secret generated contains a character from each of the sub-strings. This introduces a bias that
-                // disproportionately generates more characters from shorter sub-strings than longer ones. The bias
-                // can be significant and increases with shorter pools and shorter generated secrets. The bias can be
-                // reduced by ignoring the next reference to each sub-string after the initial selections. The bias
-                // becomes insignificant with secrets of 64 characters or more.
+                // Discussion: The program starts by selecting one random character from each of the four sub-strings.  This
+                // ensures the secret generated will contain at least one character from each of the sub-strings.  This, however
+                // introduces a bias.  Disproportionately more characters are generated from the shorter sub-strings than the 
+                // longer ones.  The bias can be significant and increases with shorter pools and shorter generated secrets.  The
+                // bias is reduced by ignoring the next reference to each sub-string after the initial selections.  The bias
+                // becomes insignificant falling below three sigma when generating secrets of 64 characters or more.
 
-                // The following code implements a trap that bypasses the second instance of a character being selected
+                // The following block of code implements a trap that bypasses the second instance of a character being selected
                 // from each of the four sub-strings. See discussion above.
                 if (!allPoolsCompensated && compensate)
                 {
@@ -193,35 +171,21 @@ namespace SecretStringMaker
             }
         }
 
-        
-        // Finds the minimum number of bits required to hold an integer large enough to index into a string
-        // of length 'length' then returns the number of bits a ushort has in excess of the required bits.
-        private int getBitsToShift(int length)
-        {
-            var bits = 15;
-            while ((length >>= 1) > 0)
-            {
-                bits--;
-            }
-            return bits;
-
-        //    return 16 - (int)Math.Ceiling(Math.Log(length, 2));
-        }
-
         /// Performs an in place shuffle on a StringBuilder's array.
         /// The stack of randomly selected chars builds from the end of the array.
         /// The top of the stack tracks with i as i gets smaller.
         /// </summary>
         /// <param name="builder">string builder that gets shuffled</param>
         /// <param name="provider">random generator provider</param>
-        private void shuffle(StringBuilder builder, RNGCryptoServiceProvider provider)
+        private void shuffle(StringBuilder builder, CryptoRandomIndexProvider provider)
         {
             char copiedChar;
 
-            for (int i = builder.Length - 1; i > 0; i--)
+            for (int i = builder.Length - 1; i > 1; i--)
             {
                 // Get a random number in the range of 0 to i.
-                processRandomIndex(provider, i, getBitsToShift(i + 1));
+                //processRandomIndex(provider, i, getBitsToShift(i + 1));
+                var randomIndex = provider.getRandomIndex(i-1);
 
                 // Copy the char at i making room above the stack for the randomly selected char.
                 copiedChar = builder[i];
@@ -232,27 +196,6 @@ namespace SecretStringMaker
                 // Place the char that was at i in the position the random char came from.
                 builder[randomIndex] = copiedChar;
             }
-        }
-
-        /// <summary>
-        ///     Reduces unsigned integer value in global variable 'randomIndex'
-        /// </summary>
-        /// <param name="provider">Random generator provider</param>
-        /// <param name="length">Length of the string that variable randomIndex will operate on</param>
-        /// <param name="bitsToShift">Value used to reduce effective bits in variable randomIndex </param>
-        private void processRandomIndex(RNGCryptoServiceProvider provider, int length, int bitsToShift)
-        {
-            // Keep trying until we get a random number in range of the strings length.;
-            do
-            {
-                provider.GetBytes(twoBytes);
-                randomIndex = BitConverter.ToUInt16(twoBytes, 0);
-
-                // Collapse the randomShort so we use only the necessary number of bits.
-                // The number is smaller and still random. Helps the do-while loop.
-                randomIndex >>= bitsToShift;
-            }
-            while (randomIndex >= length);
         }
     }
 }

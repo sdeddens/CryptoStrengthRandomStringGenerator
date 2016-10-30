@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
+
 
 namespace SecretStringMaker
 {
@@ -23,7 +25,9 @@ namespace SecretStringMaker
             double average;
             double squareDiffsTotal;
             int charIndex;
-            SecretMaker maker = new SecretMaker(secretStringLength);
+
+            var stopWatch = new Stopwatch();
+            var maker = new SecretMaker(secretStringLength);
 
             // Create and initialize the lookup table
             var lookupTable = new Dictionary<char, int>(SecretMaker.allCharsPool.Length);
@@ -51,7 +55,9 @@ namespace SecretStringMaker
             for (int i = 0; i < repetitions; i++)
             {
                 // Generate the data.
+                stopWatch.Start();
                 secret =  maker.getNewSecret();
+                stopWatch.Stop();
 
                 // Tally the data.
                 for (int j = 0; j < secret.Length; j++)
@@ -110,6 +116,8 @@ namespace SecretStringMaker
                 }
                 Console.Write($"{SecretMaker.allCharsPool[i]}:{pad((int)locationDeviations[i])}{locationDeviations[i]:0.000}   ");
             }
+
+            Console.WriteLine($" RunTime: {stopWatch.Elapsed}");
         }
 
         /// <summary>
