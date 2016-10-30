@@ -117,7 +117,7 @@ namespace SecretStringMaker
                 Console.Write($"{SecretMaker.allCharsPool[i]}:{pad((int)locationDeviations[i])}{locationDeviations[i]:0.000}   ");
             }
 
-            Console.WriteLine($" RunTime: {stopWatch.Elapsed}");
+            Console.WriteLine($" Generating Secrets RunTime: {stopWatch.Elapsed}");
         }
 
         /// <summary>
