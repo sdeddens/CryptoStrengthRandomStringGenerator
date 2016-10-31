@@ -57,8 +57,9 @@ namespace SecretStringMaker
                 {
                     byteSource.GetBytes(fourBytes);
                     random = BitConverter.ToUInt32(fourBytes, 0);
-                    
-                    // Cutting random "down to size" gives each attempt at least a 50% chance of succeeding.
+
+                    // Cutting random "down to size" gives, at the very
+                    // minimum, each attempt a 50% chance of succeeding.
                     random >>= shiftBitsRight;
                 }
                 // Keep trying until our random number is <= range;
