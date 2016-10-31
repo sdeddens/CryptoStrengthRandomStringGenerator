@@ -96,7 +96,6 @@ namespace SecretStringMaker
             return sBuilder.ToString();
         }
 
-
         /// <summary>
         ///     Adds randomly selected chars from a selection pool to the string builder.
         /// </summary>
@@ -105,7 +104,12 @@ namespace SecretStringMaker
         /// <param name="builder">string builder chars are added to</param>
         /// <param name="provider">random generator provider</param>
         /// <prram name="compensate">Flag to check if compensation is necessary</prram>
-        private void addCharsToBuilder(string pool, int numberOfCharsToAdd, StringBuilder builder, CryptoRandomIndexProvider provider, bool compensate)
+        private void addCharsToBuilder(
+            string pool, 
+            int numberOfCharsToAdd, 
+            StringBuilder builder, 
+            CryptoRandomIndexProvider provider, 
+            bool compensate)
         {
 
             for (int i = 0; i < numberOfCharsToAdd; i++)
