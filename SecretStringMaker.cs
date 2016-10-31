@@ -42,7 +42,7 @@ namespace SecretStringMaker
         }
 
         /// <summary>
-        /// Sets length of generated secrets. any argument less than 4 will return a sting of length 4.
+        /// Sets length of generated secrets. Any argument less than 4 will return a sting of length 4.
         /// </summary>
         /// <param name="length">Desired length of new secret.</param>
         public SecretMaker(int length)
