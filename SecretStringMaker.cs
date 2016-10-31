@@ -21,7 +21,7 @@ namespace SecretStringMaker
         private int lowerPoolEnd = numberPool.Length + lowerPool.Length - 1;
         private int upperPoolEnd = numberPool.Length + lowerPool.Length + upperPool.Length - 1;
         private int secretStringLength;
-        private int minSecretLength = 4;
+        public const int minSecretLength = 4;
 
         private int numberOfPoolsCompensated = 0;
         private bool numberPoolCompensated = false;

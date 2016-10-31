@@ -25,8 +25,12 @@ namespace SecretStringMaker
             double average;
             double squareDiffsTotal;
             int charIndex;
-
             var stopWatch = new Stopwatch();
+
+            if (secretStringLength < SecretMaker.minSecretLength)
+            {
+                secretStringLength = SecretMaker.minSecretLength;
+            }
             var maker = new SecretMaker(secretStringLength);
 
             // Create and initialize the lookup table

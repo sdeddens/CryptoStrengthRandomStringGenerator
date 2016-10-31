@@ -28,11 +28,8 @@ namespace SecretStringMaker
             // Use Int64 because value of range can overflow Int32.
             long range = firstValue - (long)secondValue;
 
-            // Assuming Abs.range is < 2, significant zero bits of uint will be 31.
-            int shiftBitsRight = 31;
-
             // Using absolute value removes any high order twos-compliment bit.
-            // Impossible for absolute value of range to overflow a uint.
+            // It is impossible for the absolute value of range to overflow a uint.
             uint absRange = (uint)Math.Abs(range);
             uint testRange = absRange;
             uint random;
@@ -40,12 +37,15 @@ namespace SecretStringMaker
             // Make a place to park 32 bits
             byte[] fourBytes = new byte[4];
 
-            // Use testRange to find significant zero bits in absRange;
-            while ((testRange >>= 1) > 0)
-            {
-                // Each time testRange is found to be larger, the significant zero bits decrease.
-                shiftBitsRight--;
-            }
+            // Dichotomic search for leading zero bits in range value.
+            // Used here for illustration purposes. Technique is slightly
+            // faster than iteratively testing for ((testRange >>= 1) == 0) .
+            int leadingZeros = 1;
+            if ((testRange >> 16) == 0) { leadingZeros += 16; testRange <<= 16; }
+            if ((testRange >> 24) == 0) { leadingZeros += 8; testRange <<= 8; }
+            if ((testRange >> 28) == 0) { leadingZeros += 4; testRange <<= 4; }
+            if ((testRange >> 30) == 0) { leadingZeros += 2; testRange <<= 2; }
+            leadingZeros -= (int)(testRange >> 31);
 
             // Set up the byte provider.
             // Important: Type RNGCryptoServiceProvider uses IDisposable interface.
@@ -60,7 +60,7 @@ namespace SecretStringMaker
 
                     // Cutting random "down to size" gives, at the very
                     // minimum, each attempt a 50% chance of succeeding.
-                    random >>= shiftBitsRight;
+                    random >>= leadingZeros;
                 }
                 // Keep trying until our random number is <= range;
                 while (random > absRange);
